@@ -4,7 +4,7 @@ const User = require('../models/users.models');
 const { auth, isManager, isManagerOrSelf } = require('../middleware/auth');
 
 // Get all engineers (managers only)
-router.get('/engineers', auth, isManager, async (req, res) => {
+router.get('/', auth, isManager, async (req, res) => {
   try {
     const engineers = await User.find({ role: 'engineer' }).select('-password');
     res.json(engineers);
@@ -15,7 +15,7 @@ router.get('/engineers', auth, isManager, async (req, res) => {
 });
 
 // Get engineer by ID (managers or self)
-router.get('/engineers/:id', auth, isManagerOrSelf, async (req, res) => {
+router.get('/:id', auth, isManagerOrSelf, async (req, res) => {
   try {
     const engineer = await User.findById(req.params.id).select('-password');
     if (!engineer) {
@@ -29,7 +29,7 @@ router.get('/engineers/:id', auth, isManagerOrSelf, async (req, res) => {
 });
 
 // Update engineer profile (managers or self)
-router.put('/engineers/:id', auth, isManagerOrSelf, async (req, res) => {
+router.put('/:id', auth, isManagerOrSelf, async (req, res) => {
   try {
     const { name, skills, seniority, maxCapacity, department } = req.body;
     
@@ -59,7 +59,7 @@ router.put('/engineers/:id', auth, isManagerOrSelf, async (req, res) => {
 });
 
 // Get engineer's current capacity
-router.get('/engineers/:id/capacity', auth, isManagerOrSelf, async (req, res) => {
+router.get('/:id/capacity', auth, isManagerOrSelf, async (req, res) => {
   try {
     const engineer = await User.findById(req.params.id);
     if (!engineer) {
@@ -81,7 +81,7 @@ router.get('/engineers/:id/capacity', auth, isManagerOrSelf, async (req, res) =>
 });
 
 // Search engineers by skills
-router.get('/engineers/search/skills', auth, async (req, res) => {
+router.get('/search/skills', auth, async (req, res) => {
   try {
     const { skills } = req.query;
     if (!skills) {
