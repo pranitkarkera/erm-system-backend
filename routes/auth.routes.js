@@ -42,15 +42,15 @@ router.post('/login', async (req, res) => {
 // Signup route
 router.post('/signup', async (req, res) => {
   try {
-    const { 
-      name, 
-      email, 
-      password, 
-      role,
-      skills,
-      department,
-      seniority,
-      maxCapacity 
+    const {
+      name,
+      email,
+      password,
+      role = 'engineer',
+      skills = [],
+      department = '',
+      seniority = 'junior',
+      maxCapacity = 100
     } = req.body;
 
     // Check if user already exists
@@ -59,18 +59,22 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create new user
-    const user = new User({
+    // Only require skills/seniority/maxCapacity for engineers
+    const userData = {
       name,
       email,
       password,
-      role: role || 'engineer',
-      skills: skills || [], // Use skills from request
-      department: department || '',
-      seniority: seniority || 'junior',
-      maxCapacity: maxCapacity || 100
-    });
+      role,
+      department,
+    };
 
+    if (role === 'engineer') {
+      userData.skills = skills;
+      userData.seniority = seniority;
+      userData.maxCapacity = maxCapacity;
+    }
+
+    const user = new User(userData);
     await user.save();
 
     // Generate JWT token
@@ -90,6 +94,7 @@ router.post('/signup', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // Get current user profile
 router.get('/profile', async (req, res) => {
