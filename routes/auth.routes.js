@@ -42,7 +42,16 @@ router.post('/login', async (req, res) => {
 // Signup route
 router.post('/signup', async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { 
+      name, 
+      email, 
+      password, 
+      role,
+      skills,
+      department,
+      seniority,
+      maxCapacity 
+    } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -55,10 +64,11 @@ router.post('/signup', async (req, res) => {
       name,
       email,
       password,
-      role: role || 'engineer', // Default to engineer if role not specified
-      skills: [],
-      seniority: 'junior', // Default values for engineers
-      maxCapacity: 100
+      role: role || 'engineer',
+      skills: skills || [], // Use skills from request
+      department: department || '',
+      seniority: seniority || 'junior',
+      maxCapacity: maxCapacity || 100
     });
 
     await user.save();

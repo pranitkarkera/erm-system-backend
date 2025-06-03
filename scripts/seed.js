@@ -18,11 +18,11 @@ const seedData = async () => {
 
     // Create manager
     const manager = await User.create({
-      email: 'manager@example.com',
-      password: await bcrypt.hash('password123', 10),
-      name: 'John Manager',
-      role: 'manager',
-      department: 'Engineering'
+      email: "manager@example.com",
+      password: await bcrypt.hash("password123", 10),
+      name: "John Manager",
+      role: "manager",
+      department: "Engineering",
     });
 
     // Create engineers
