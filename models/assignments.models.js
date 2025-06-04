@@ -1,109 +1,103 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const assignmentSchema = new mongoose.Schema({
-  engineerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  projectId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Project',
-    required: true
-  },
-  allocationPercentage: {
-    type: Number,
-    required: true,
-    min: 0,
-    max: 100,
-    validate: {
-      validator: async function(value) {
-        if (this.isNew || this.isModified('allocationPercentage')) {
-          const Assignment = this.constructor;
-          const now = new Date();
-          
-          // Get all other active assignments for this engineer
-          const activeAssignments = await Assignment.find({
-            engineerId: this.engineerId,
-            _id: { $ne: this._id },
-            startDate: { $lte: now },
-            endDate: { $gte: now }
-          });
+const assignmentSchema = new mongoose.Schema(
+  {
+    engineerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    projectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
+    },
+    allocationPercentage: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 100,
+      validate: {
+        validator: async function (value) {
+          if (
+            this.isNew ||
+            this.isModified("allocationPercentage") ||
+            this.isModified("startDate") ||
+            this.isModified("endDate")
+          ) {
+            const Assignment = this.constructor;
 
-          // Calculate total allocation including this new assignment
-          const totalAllocation = activeAssignments.reduce(
-            (sum, assignment) => sum + assignment.allocationPercentage, 
-            value
-          );
+            // Find assignments overlapping with THIS assignment's date range
+            const overlappingAssignments = await Assignment.find({
+              engineerId: this.engineerId,
+              _id: { $ne: this._id },
+              startDate: { $lte: this.endDate },
+              endDate: { $gte: this.startDate },
+            });
 
-          // Get engineer's max capacity
-          const User = mongoose.model('User');
-          const engineer = await User.findById(this.engineerId);
-          
-          return totalAllocation <= engineer.maxCapacity;
-        }
-        return true;
+            // Sum their allocation plus this assignment's value
+            const totalAllocation = overlappingAssignments.reduce(
+              (sum, a) => sum + a.allocationPercentage,
+              value
+            );
+
+            const User = mongoose.model("User");
+            const engineer = await User.findById(this.engineerId);
+
+            return engineer && totalAllocation <= engineer.maxCapacity;
+          }
+          return true;
+        },
+        message:
+          "Total allocation exceeds engineer's capacity during this period",
       },
-      message: 'Total allocation exceeds engineer\'s capacity'
-    }
-  },
-  startDate: {
-    type: Date,
-    required: true
-  },
-  endDate: {
-    type: Date,
-    required: true,
-    validate: {
-      validator: function(value) {
-        return value > this.startDate;
+    },
+    startDate: {
+      type: Date,
+      required: true,
+    },
+    endDate: {
+      type: Date,
+      required: true,
+      validate: {
+        validator: function (value) {
+          return value > this.startDate;
+        },
+        message: "End date must be after start date",
       },
-      message: 'End date must be after start date'
-    }
+    },
+    role: {
+      type: String,
+      required: true,
+      trim: true,
+    },
   },
-  role: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+  {
+    timestamps: true, // This will add and maintain createdAt and updatedAt automatically
   }
-}, {
-  timestamps: true
-});
+);
 
-// Index for efficient querying of active assignments
+// Indexes (unchanged)
 assignmentSchema.index({ engineerId: 1, startDate: 1, endDate: 1 });
 assignmentSchema.index({ projectId: 1, startDate: 1, endDate: 1 });
 
-// Method to check if dates overlap with existing assignments
-assignmentSchema.methods.checkDateOverlap = async function() {
+// Improved checkDateOverlap method
+assignmentSchema.methods.checkDateOverlap = async function () {
   const Assignment = this.constructor;
-  
+
   const overlappingAssignments = await Assignment.find({
     engineerId: this.engineerId,
     _id: { $ne: this._id },
-    $or: [
-      {
-        startDate: { $lte: this.startDate },
-        endDate: { $gte: this.startDate }
-      },
-      {
-        startDate: { $lte: this.endDate },
-        endDate: { $gte: this.endDate }
-      }
-    ]
+    // Overlap condition
+    $and: [
+      { startDate: { $lte: this.endDate } },
+      { endDate: { $gte: this.startDate } },
+    ],
   });
 
   return overlappingAssignments;
 };
 
-const Assignment = mongoose.model('Assignment', assignmentSchema);
+const Assignment = mongoose.model("Assignment", assignmentSchema);
 
-module.exports = Assignment; 
+module.exports = Assignment;

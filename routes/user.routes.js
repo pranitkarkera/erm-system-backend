@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/users.models');
+const Assignment = require('../models/assignments.models');
 const { auth, isManager, isManagerOrSelf } = require('../middleware/auth');
 
-// Get all engineers (managers only)
-router.get('/', auth, isManager, async (req, res) => {
+// Get all engineers (accessible to all authenticated users)
+router.get('/', auth, async (req, res) => {
   try {
     const engineers = await User.find({ role: 'engineer' }).select('-password');
     res.json(engineers);
@@ -66,14 +67,8 @@ router.get('/:id/capacity', auth, isManagerOrSelf, async (req, res) => {
       return res.status(404).json({ message: 'Engineer not found' });
     }
 
-    const availableCapacity = await engineer.getAvailableCapacity();
-    res.json({
-      engineerId: engineer._id,
-      name: engineer.name,
-      maxCapacity: engineer.maxCapacity,
-      availableCapacity,
-      allocatedCapacity: engineer.maxCapacity - availableCapacity
-    });
+    const capacityData = await engineer.getCapacityData();
+    res.json(capacityData);
   } catch (error) {
     console.error('Error fetching capacity:', error);
     res.status(500).json({ message: 'Server error' });
@@ -98,6 +93,46 @@ router.get('/search/skills', auth, async (req, res) => {
     res.json(engineers);
   } catch (error) {
     console.error('Error searching engineers:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get capacity data for all engineers
+router.get('/capacity/all', auth, async (req, res) => {
+  try {
+    const engineers = await User.find({ role: 'engineer' });
+    const capacityData = {};
+
+    // Get all assignments
+    const assignments = await Assignment.find({});
+
+    // Calculate capacity for each engineer
+    for (const engineer of engineers) {
+      const engineerAssignments = assignments.filter(
+        a => a.engineerId.toString() === engineer._id.toString()
+      );
+      
+      const allocatedCapacity = engineerAssignments.reduce(
+        (sum, assignment) => sum + assignment.allocationPercentage,
+        0
+      );
+
+      capacityData[engineer._id] = {
+        engineerId: engineer._id,
+        totalCapacity: engineer.maxCapacity || 100,
+        allocatedCapacity,
+        availableCapacity: (engineer.maxCapacity || 100) - allocatedCapacity,
+        assignments: engineerAssignments.map(a => ({
+          startDate: a.startDate,
+          endDate: a.endDate,
+          allocation: a.allocationPercentage
+        }))
+      };
+    }
+
+    res.json(capacityData);
+  } catch (error) {
+    console.error('Error fetching capacity data:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

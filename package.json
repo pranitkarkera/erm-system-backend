@@ -1,13 +1,11 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "Engineering Resource Management System Backend",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "jest",
-    "seed": "node scripts/seed.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
@@ -17,16 +15,10 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "express-validator": "^7.2.1",
-    "helmet": "^7.2.0",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.16.0",
-    "mongoose": "^8.14.3",
-    "morgan": "^1.10.0"
-  },
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "nodemon": "^3.0.3",
-    "supertest": "^6.3.4"
+    "mongoose": "^8.15.1",
+    "morgan": "^1.10.0",
+    "nodemon": "^3.1.10"
   }
 }

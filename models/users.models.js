@@ -77,16 +77,55 @@ userSchema.methods.getAvailableCapacity = async function() {
   const Assignment = mongoose.model('Assignment');
   const now = new Date();
   
-  const activeAssignments = await Assignment.find({
+  // Get all current and future assignments
+  const assignments = await Assignment.find({
     engineerId: this._id,
-    startDate: { $lte: now },
     endDate: { $gte: now }
   });
 
-  const totalAllocated = activeAssignments.reduce((sum, assignment) => 
-    sum + assignment.allocationPercentage, 0);
+  // Calculate total allocation from current assignments
+  const totalAllocated = assignments.reduce((sum, assignment) => {
+    // Only count assignments that are currently active
+    if (assignment.startDate <= now && assignment.endDate >= now) {
+      return sum + assignment.allocationPercentage;
+    }
+    return sum;
+  }, 0);
 
   return this.maxCapacity - totalAllocated;
+};
+
+// Method to get capacity data including future allocations
+userSchema.methods.getCapacityData = async function() {
+  const Assignment = mongoose.model('Assignment');
+  const now = new Date();
+  
+  // Get all current and future assignments
+  const assignments = await Assignment.find({
+    engineerId: this._id,
+    endDate: { $gte: now }
+  }).sort({ startDate: 1 });
+
+  // Calculate current allocation
+  const currentAllocation = assignments.reduce((sum, assignment) => {
+    if (assignment.startDate <= now && assignment.endDate >= now) {
+      return sum + assignment.allocationPercentage;
+    }
+    return sum;
+  }, 0);
+
+  return {
+    engineerId: this._id,
+    name: this.name,
+    maxCapacity: this.maxCapacity,
+    allocatedCapacity: currentAllocation,
+    totalCapacity: this.maxCapacity,
+    futureAssignments: assignments.map(a => ({
+      startDate: a.startDate,
+      endDate: a.endDate,
+      allocation: a.allocationPercentage
+    }))
+  };
 };
 
 const User = mongoose.model('User', userSchema);
