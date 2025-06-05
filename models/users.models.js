@@ -7,11 +7,30 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
     trim: true,
-    lowercase: true
+    lowercase: true,
+    validate: {
+      validator: function(email) {
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        return emailRegex.test(email);
+      },
+      message: 'Please enter a valid email address'
+    }
   },
   password: {
     type: String,
-    required: true
+    required: true,
+    validate: {
+      validator: function(password) {
+        // Only validate password on new user creation or password change
+        if (this.isModified('password')) {
+          // At least 8 characters, 1 uppercase, 1 lowercase, 1 number
+          const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+          return passwordRegex.test(password);
+        }
+        return true;
+      },
+      message: 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number'
+    }
   },
   name: {
     type: String,
